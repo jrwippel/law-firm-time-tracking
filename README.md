@@ -113,13 +113,9 @@ Redefinição de senha
 Email de recebimento
 <img width="1287" height="394" alt="image" src="https://github.com/user-attachments/assets/643d37e3-6a1a-4fd6-ac7b-80c829691813" />
 
-
-
-
-
-
-
-
+## About the Author
+Software Engineer and Technical Leader with 20+ years of experience.
+Background in enterprise systems, legacy modernization, and team leadership.
 
 ---
 

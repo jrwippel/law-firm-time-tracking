@@ -1,0 +1,215 @@
+﻿@using WebAppSystems.Models.Enums;
+@using WebAppSystems.Models.ViewModels;
+@model ProcessRecordViewModel;
+
+@{
+    ViewData["Title"] = "Nova Atividade";
+    var userId = ViewBag.LoggedUserId as int?;
+    var isAdmin = ViewBag.IsAdmin as bool?;
+}
+
+<div class="card">
+    <div class="card-body">
+        <h4 class="card-title">Registro de Atividades</h4>
+        <hr />
+        <form asp-action="Create">
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+            <div class="form-group">
+                <label asp-for="ProcessRecord.RecordType" class="control-label">Tipo de Registro</label>
+                <select asp-for="ProcessRecord.RecordType" class="form-control">
+                    <option value="">Selecionar</option>
+                    @foreach (var item in Html.GetEnumSelectList<RecordType>())
+                    {
+                        <option value="@item.Value">@item.Text</option>
+                    }
+                </select>
+                <span asp-validation-for="ProcessRecord.RecordType" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <label asp-for="ProcessRecord.Date" class="control-label">Data</label>
+                <input asp-for="ProcessRecord.Date" class="form-control" />
+                <span asp-validation-for="ProcessRecord.Date" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <label asp-for="ProcessRecord.HoraInicial" class="control-label">Hora Inicial</label>
+                <input asp-for="ProcessRecord.HoraInicial" class="form-control" />
+                <span asp-validation-for="ProcessRecord.HoraInicial" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <label asp-for="ProcessRecord.HoraFinal" class="control-label">Hora Final</label>
+                <input asp-for="ProcessRecord.HoraFinal" class="form-control" />
+                <span asp-validation-for="ProcessRecord.HoraFinal" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <label asp-for="ProcessRecord.Description" class="control-label">Descrição da Atividade</label>
+                <textarea asp-for="ProcessRecord.Description" class="form-control" rows="5"></textarea>
+                <span asp-validation-for="ProcessRecord.Description" class="text-danger"></span>
+            </div>
+
+            <input type="hidden" asp-for="ProcessRecord.AttorneyId" />
+            <div class="form-group">
+                <label class="control-label">Usuário</label>
+                <input type="hidden" asp-for="ProcessRecord.AttorneyId" />
+                <input type="text" value="@Model.Attorneys.FirstOrDefault(a => a.Id == Model.ProcessRecord.AttorneyId)?.Name" class="form-control" readonly />
+            </div>
+            <div class="form-group">
+                <label asp-for="ProcessRecord.ClientId" class="control-label">Cliente</label>
+                <select asp-for="ProcessRecord.ClientId" class="form-control" asp-items="Model.ClientsOptions"></select>
+                <span asp-validation-for="ProcessRecord.ClientId" class="text-danger"></span>
+                @if (isAdmin == true)
+                {
+                    <button type="button" class="btn btn-link" data-toggle="modal" data-target="#createClientModal">
+                        + Cadastrar Novo Cliente
+                    </button>
+                }
+            </div>
+
+            <div class="form-group">
+                <label asp-for="ProcessRecord.DepartmentId" class="control-label">Área</label>
+                <select asp-for="ProcessRecord.DepartmentId" asp-items="@(new SelectList(Model.Departments, "Id", "Name"))" class="form-control"></select>
+            </div>
+            <div class="form-group">
+                <label asp-for="ProcessRecord.Solicitante" class="control-label">Solicitante</label>
+                <input asp-for="ProcessRecord.Solicitante" class="form-control" />
+                <span asp-validation-for="ProcessRecord.Solicitante" class="text-danger"></span>
+            </div>
+
+            <div class="mt-3">
+                <button type="submit" class="btn btn-primary">Salvar</button>
+                <a asp-action="Index" class="btn btn-secondary">Voltar</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal para criar novo cliente -->
+<div class="modal fade" id="createClientModal" tabindex="-1" role="dialog" aria-labelledby="createClientModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="createClientModalLabel">Cadastrar Novo Cliente</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="createClientForm" method="post" enctype="multipart/form-data">
+                    <div class="form-group">
+                        <label for="Name">Nome</label>
+                        <input type="text" id="Name" name="Name" class="form-control" required />
+                    </div>
+                    <div class="form-group">
+                        <label for="Document">Documento</label>
+                        <input type="text" id="Document" name="Document" class="form-control" />
+                    </div>
+                    <div class="form-group">
+                        <label for="Email">Email</label>
+                        <input type="email" id="Email" name="Email" class="form-control" />
+                    </div>
+                    <div class="form-group">
+                        <label for="Telephone">Telefone</label>
+                        <input type="text" id="Telephone" name="Telephone" class="form-control" />
+                    </div>
+                    <div class="form-group">
+                        <label for="ImageData">Logo</label>
+                        <input type="file" id="ImageData" name="ImageData" class="form-control" />
+                    </div>
+                    <div class="form-group">
+                        <label for="Solicitante">Solicitante Padrão</label>
+                        <input type="text" id="Solicitante" name="Solicitante" class="form-control" />
+                    </div>
+                    <div class="form-check">
+                        <input type="checkbox" id="ClienteInterno" name="ClienteInterno" class="form-check-input" />
+                        <label for="ClienteInterno" class="form-check-label">Cliente Interno</label>
+                    </div>
+                    <div class="mt-3">
+                        <button type="submit" class="btn btn-primary">Salvar</button>
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
+                    </div>
+                </form>
+                <div id="clientCreationMessage" class="mt-3"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+
+    <script>
+        $(document).ready(function () {
+            // Define o foco automaticamente no campo "Tipo de Registro"
+            var $recordTypeSelect = $("select[id$='ProcessRecord_RecordType']");
+            $recordTypeSelect.focus();
+
+            // Configura a opção padrão do combo box para "Selecionar"
+            $recordTypeSelect.val(''); // Define a opção padrão para 'Selecionar' (valor vazio)
+
+            $("select[id$='ProcessRecord_ClientId']").change(function () {
+                var clientId = $(this).val();
+                if (clientId) {
+                    $.getJSON('@Url.Action("GetClientSolicitante", "ProcessRecords")', { clientId: clientId }, function (data) {
+                        if (data.success) {
+                            $("input[id$='ProcessRecord_Solicitante']").val(data.solicitante);
+                        } else {
+                            $("input[id$='ProcessRecord_Solicitante']").val('');
+                        }
+                    });
+                } else {
+                    $("input[id$='ProcessRecord_Solicitante']").val('');
+                }
+            });
+
+            $("input[id$='HoraInicial'], input[id$='HoraFinal']").on('focus', function (e) {
+                if ($(this).val() == '00:00') {
+                    $(this).val('');
+                }
+            }).on('blur', function (e) {
+                var value = $(this).val().replace(/\D/g, "").padStart(4, "0");
+                if (value.length === 4) {
+                    $(this).val(value.substr(0, 2) + ":" + value.substr(2));
+                } else if ($(this).val() == '') {
+                    $(this).val('00:00');
+                }
+            });
+
+            // Submissão do formulário de cadastro de cliente
+            $("#createClientForm").on("submit", function (event) {
+                event.preventDefault();
+
+                var formData = new FormData(this);
+
+                $.ajax({
+                    url: '@Url.Action("CreateCliente", "Clients")',
+                    type: 'POST',
+                    data: formData,
+                    contentType: false,
+                    processData: false,
+                    success: function (response) {
+                        console.log(response);
+                        if (response.success) {
+                            var newOption = new Option(response.clienteNome, response.clienteId, false, true);
+                            $("select[id$='ProcessRecord_ClientId']").append(newOption).trigger('change');
+                            $("#createClientModal").modal('hide');
+                        } else {
+                            $("#clientCreationMessage").html('<div class="alert alert-danger">Apenas usuários com perfil admin podem cadastrar clientes</div>');
+                        }
+                    },
+                    error: function () {
+                        $("#clientCreationMessage").html('<div class="alert alert-danger">Erro ao cadastrar cliente.</div>');
+                    }
+                });
+            });
+
+        });
+
+        $(document).ready(function () {
+            $('button[data-toggle="modal"]').on('click', function () {
+                var target = $(this).data('target');
+                $(target).modal('show');
+            });
+        });
+    </script>
+}

@@ -1,0 +1,555 @@
+﻿@model WebAppSystems.Models.ViewModels.ProcessRecordViewModel
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <style>
+
+        .description-cell {
+            max-width: 200px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            position: relative; /* Necessário para posicionar o tooltip */
+        }
+
+            .description-cell:hover::after {
+                content: attr(data-full-description);
+                position: absolute;
+                left: 0;
+                bottom: 100%;
+                background: #333;
+                color: #fff;
+                padding: 5px;
+                border-radius: 5px;
+                white-space: normal;
+                z-index: 10;
+                opacity: 0.9;
+                transform: translateY(-5px);
+                pointer-events: none;
+                max-width: 400px; /* Ajuste conforme necessário */
+                box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+                /* Adicione essas duas linhas para garantir que o tooltip não se sobreponha a outros elementos */
+                width: max-content;
+                min-width: 150px; /* Ajuste conforme necessário */
+            }
+
+        .form-group {
+            margin-bottom: 0;
+        }
+
+        .form-control {
+            display: inline-block;
+        }
+
+        .btn {
+            line-height: 1.5;
+        }
+
+        #timeDisplay {
+            line-height: 1.5;
+            font-size: 2rem;
+            font-weight: bold;
+        }
+
+        .time-tracker {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .form-group.row.align-items-center {
+            display: flex;
+            align-items: center;
+            width: 100%;
+        }
+
+        .form-group .col-md-7 {
+            flex: 1;
+        }
+
+        .form-group .col-md-2, .form-group .col-md-3 {
+            flex: 0 0 auto;
+        }
+
+        .form-group .form-control {
+            width: 100%;
+        }
+
+        .form-group .btn {
+            margin-left: 10px;
+        }
+
+        .form-group .time-display-container {
+            text-align: right;
+            margin-left: 10px;
+        }
+
+        .form-group.full-width {
+            width: 100%;
+        }
+
+        .form-group.inline-fields {
+            display: flex;
+            justify-content: space-between;
+        }
+
+            .form-group.inline-fields > * {
+                flex: 1;
+                margin-right: 10px;
+            }
+
+                .form-group.inline-fields > *:last-child {
+                    margin-right: 0;
+                }
+
+        #startStopButton {
+            font-size: 1.8rem;
+            width: 80px;
+            height: 80px;
+            padding: 20px;
+        }
+    </style>
+</head>
+<body>
+    <style>
+        .form-group {
+            margin-bottom: 20px;
+        }
+    </style>
+
+    <div id="content">
+        <h1>Time Tracker</h1>
+        <div class="time-tracker">            
+            <div class="form-group inline-fields">
+                <select asp-for="ProcessRecord.RecordType" asp-items="Model.RecordTypesOptions" class="form-control"></select>
+                <select asp-for="ProcessRecord.ClientId" asp-items="Model.ClientsOptions" class="form-control"></select>
+                <select asp-for="ProcessRecord.DepartmentId" asp-items="Model.DepartmentsOptions" class="form-control"></select>
+                <input type="text" asp-for="Solicitante" class="form-control" id="solicitante" placeholder="Informe o Solicitante" />
+                
+
+            </div>
+
+            <div class="form-group full-width">
+                <input type="text" class="form-control" id="description" placeholder="O que vamos fazer agora?" oninput="checkDescription()" />
+            </div>
+
+            <div class="form-group row align-items-center">
+                <div class="col-md-2 d-flex align-items-center">
+                    <button id="startStopButton" onclick="toggleTimer()" class="btn btn-success" style="padding: 10px;" disabled>
+                        <i class="fa fa-play fa-lg"></i>
+                    </button>
+                </div>
+                <div class="col-md-3 d-flex align-items-center time-display-container">
+                    <span id="timeDisplay" class="small">00:00:00</span>
+                </div>
+            </div>            
+
+            <input type="text" id="searchInput" placeholder="Pesquisar na tabela..." oninput="filterTable()" class="form-control" style="margin-bottom: 15px;">
+
+            
+           <div class="form-group full-width">
+                <!--<table class="table" id="table-SearchRecord" table-striped table-hover">-->
+                       <table class="table table-striped" id="recordsTable"> 
+                    <thead>
+                        <tr>
+                            <th>Data</th>
+                            <th>Hora Inicial</th>
+                            <th>Hora Final</th>
+                            <th>Duração</th>
+                            <th>Descrição</th>
+                            <th>Cliente</th>
+                            <th>Solicitante</th>
+                            <th>Tipo de Registro</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        
+                    </tbody>
+                </table>
+            </div>           
+            
+        </div>
+    </div>
+
+    <div id="error-message" class="alert alert-danger" style="display: none;"></div>
+
+
+    <script>
+        let timerInterval;
+        let startTime;
+        let isRunning = false;
+        let processRecordId;
+
+        let loggedUserId = '@ViewBag.LoggedUserId';
+
+        const recordTypeMap = {
+            0: "Consultivo",
+            1: "Contencioso",
+            2: "Proposta Específica"
+        };
+
+        // Captura o evento de mudança no combo de clientes
+        document.addEventListener("DOMContentLoaded", function () {
+            const clientField = document.querySelector('select[name="ProcessRecord.ClientId"]');
+            const solicitanteField = document.getElementById("solicitante");
+
+            clientField.addEventListener('change', async function () {
+                const clientId = clientField.value;
+
+                // Verifica se um cliente foi selecionado
+                if (clientId && clientId !== "0") {
+                    try {
+                        const response = await fetch(`/TimeTracker/GetSolicitanteByClientId?clientId=${clientId}`);
+
+                        if (response.ok) {
+                            const data = await response.json();
+
+                            if (data && data.solicitante) {
+                                solicitanteField.value = data.solicitante; // Preenche o campo solicitante
+                            } else {
+                                solicitanteField.value = ""; // Limpa se não encontrar solicitante
+                            }
+                        } else {
+                            console.error('Erro ao obter solicitante.');
+                        }
+                    } catch (error) {
+                        console.error('Erro na requisição:', error);
+                    }
+                } else {
+                    solicitanteField.value = ""; // Limpa se o cliente não for válido
+                }
+            });
+        });
+
+
+        async function loadRecordsForToday(attorneyId) {
+            try {
+                const response = await fetch(`/TimeTracker/GetRecordsForToday?attorneyId=${attorneyId}`);
+
+                if (response.ok) {
+                    const records = await response.json();
+                    console.log("Records returned from server:", records); // Log do retorno
+
+                    const tableBody = document.querySelector("#recordsTable tbody");
+                    tableBody.innerHTML = ""; // Limpa o conteúdo atual
+
+                    records.forEach(record => {
+                        const startTime = new Date(`1970-01-01T${record.horaInicial}Z`);
+                        const endTime = new Date(`1970-01-01T${record.horaFinal}Z`);
+                        const duration = calculateDuration(startTime, endTime);
+
+                        const formattedDate = new Date(record.date).toLocaleDateString("pt-BR");
+
+                        const row = document.createElement("tr");
+                        row.innerHTML = `
+                                                            <td>${formattedDate}</td> 
+                                                            <td>${record.horaInicial}</td>
+                                                            <td>${record.horaFinal}</td>
+                                                            <td>${duration}</td>
+                                                            <td class="description-cell" data-full-description="${record.description}">${record.description}</td>
+                                                            <td>${record.clienteNome}</td>
+                                                            <td>${record.solicitante}</td>
+                                                            <td>${recordTypeMap[record.recordType]}</td>
+                                                            <td>
+                                                                <input type="hidden" class="record-id" value="${record.id}">
+                                                                    <button class="btn btn-success play-button" onclick="startTimerFromRecord(this.previousElementSibling.value)">
+                                                                    <i class="fa fa-play"></i>
+                                                                </button>
+                                                            </td>
+                                                        `;
+                        tableBody.appendChild(row);
+
+                    });
+                } else {
+                    console.error('Erro ao carregar os registros.');
+                }
+            } catch (error) {
+                console.error('Erro na chamada de fetch para carregar registros:', error);
+            }
+        }
+
+
+
+        async function startTimerFromRecord(recordId) {
+            try {
+                console.log("Registro start time from record:", recordId);
+                const response = await fetch(`/TimeTracker/GetRecordById?recordId=${recordId}`);
+
+                if (response.ok) {
+                    const record = await response.json();
+                    console.log("Registro carregado para reiniciar:", record);
+
+                    // Atualiza os campos com as informações do registro
+                    document.getElementById("description").value = record.description;
+                    document.querySelector('select[name="ProcessRecord.ClientId"]').value = record.clientId;
+                    document.querySelector('select[name="ProcessRecord.DepartmentId"]').value = record.departmentId;
+                    document.getElementById("solicitante").value = record.solicitante;
+                    document.querySelector('select[name="ProcessRecord.RecordType"]').value = record.recordType;
+                    toggleTimer();
+
+                } else {
+                    console.error('Erro ao carregar o registro.');
+                }
+            } catch (error) {
+                console.error('Erro ao carregar o registro:', error);
+            }
+        }
+
+        function calculateDuration(startTime, endTime) {
+            const diffMs = endTime - startTime; // Diferença em milissegundos
+            const diffHrs = Math.floor(diffMs / (1000 * 60 * 60));
+            const diffMins = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+            const diffSecs = Math.floor((diffMs % (1000 * 60)) / 1000);
+            return `${String(diffHrs).padStart(2, '0')}:${String(diffMins).padStart(2, '0')}:${String(diffSecs).padStart(2, '0')}`;
+        }
+
+
+        document.addEventListener("DOMContentLoaded", async function () {
+            checkDescription();
+            await loadRecordsForToday(loggedUserId);
+            const descriptionField = document.getElementById("description");
+            const clientField = document.querySelector('select[name="ProcessRecord.ClientId"]');
+            const departmentField = document.querySelector('select[name="ProcessRecord.DepartmentId"]');
+            const solicitanteField = document.getElementById("solicitante");
+            const recordTypeField = document.querySelector('select[name="ProcessRecord.RecordType"]');
+
+            const startStopButton = document.getElementById("startStopButton");
+
+            try {
+                const response = await fetch(`/TimeTracker/GetActiveTimer?attorneyId=${loggedUserId}`);
+
+                function validateFields() {
+                    const isDescriptionValid = descriptionField.value.trim() !== "";
+                    const isClientValid = clientField.value !== "" && clientField.value !== "0";
+                    const isDepartmentValid = departmentField.value !== "" && departmentField.value !== "0";
+                    const isSolicitanteValid = solicitanteField.value.trim() !== "";
+                    console.log("Dados retorno GetActiveTime:", validateFields);
+                    if (isDescriptionValid && isClientValid && isDepartmentValid && isSolicitanteValid) {
+                        startStopButton.disabled = false;
+                    } else {
+                        startStopButton.disabled = true;
+                    }
+                }
+
+                descriptionField.addEventListener('input', validateFields);
+                clientField.addEventListener('change', validateFields);
+                departmentField.addEventListener('change', validateFields);
+                solicitanteField.addEventListener('input', validateFields);
+                recordTypeField.addEventListener('input', validateFields);
+
+                if (response.ok) {
+                    const data = await response.json();
+                    console.log("Dados Recebidos:", data);
+
+                    if (data && data.horaInicial) {
+                        console.log("Hora Inicial Recebida:", data.horaInicial);
+
+                        processRecordId = data.processRecordId;
+
+                        const [hours, minutes, seconds] = data.horaInicial.split(':').map(Number);
+                        startTime = new Date();
+                        startTime.setHours(hours, minutes, seconds, 0);
+
+                        console.log("Start Time Configurado:", startTime);
+
+                        timerInterval = setInterval(updateTime, 1000);
+                        isRunning = true;
+
+                        document.getElementById("startStopButton").innerHTML = '<i class="fa fa-stop"></i>';
+                        document.getElementById("startStopButton").classList.replace('btn-success', 'btn-danger');
+                        document.getElementById("startStopButton").disabled = false;
+                        document.querySelectorAll(".play-button").forEach(btn => {
+                            btn.disabled = true;
+                        });
+                        document.getElementById("description").value = data.description;
+                        document.querySelector('select[name="ProcessRecord.ClientId"]').value = data.clientId;
+                        document.querySelector('select[name="ProcessRecord.DepartmentId"]').value = data.departmentId;
+                        document.getElementById("solicitante").value = data.solicitante;
+                        document.querySelector('select[name="ProcessRecord.RecordType"]').value = data.recordType;
+
+                    } else {
+                        console.warn("Hora Inicial não encontrada ou está vazia.");
+                    }
+                }
+            } catch (error) {
+                console.error('Erro ao recuperar o estado do cronômetro', error);
+            }
+        });
+
+        function checkDescription() {
+            const description = document.getElementById("description").value;
+            const button = document.getElementById("startStopButton");
+            button.disabled = !description.trim();
+        }
+
+        async function toggleTimer() {
+            console.log("toggleTimer:", isRunning);
+            const button = document.getElementById("startStopButton");
+            if (!isRunning) {
+                await startTimer();
+                button.innerHTML = '<i class="fa fa-stop"></i>';
+                button.classList.replace('btn-success', 'btn-danger');
+                button.disabled = false;
+                document.querySelectorAll(".play-button").forEach(btn => {
+                    btn.disabled = true;
+                });
+            } else {
+                await stopTimer();
+                button.innerHTML = '<i class="fa fa-play"></i>';
+                button.classList.replace('btn-danger', 'btn-success');
+                button.disabled = true;
+                document.querySelectorAll(".play-button").forEach(btn => {
+                    btn.disabled = false;
+                });
+            }
+        }
+
+        async function startTimer() {
+            startKeepAlive();
+            const description = document.getElementById("description").value;
+            const clientId = document.querySelector('select[name="ProcessRecord.ClientId"]').value;
+            const departmentId = document.querySelector('select[name="ProcessRecord.DepartmentId"]').value;
+            const solicitante = document.getElementById("solicitante").value;
+
+            const recordType = document.querySelector('select[name="ProcessRecord.RecordType"]').value;
+
+
+            const requestBody = {
+                description: description,
+                clientId: clientId,
+                departmentId: departmentId,
+                solicitante: solicitante,
+                attorneyId: loggedUserId,
+                recordType: recordType
+
+            };
+
+            console.log("Request JSON:", JSON.stringify(requestBody));
+
+            startTime = new Date();
+            const response = await fetch('/TimeTracker/StartTimer', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    description: description,
+                    clientId: clientId,
+                    departmentId: departmentId,
+                    solicitante: solicitante,
+                    attorneyId: loggedUserId,
+                    recordType: recordType
+                })
+            });
+
+            if (response.ok) {                
+                processRecordId = await response.json();
+                timerInterval = setInterval(updateTime, 1000);
+                isRunning = true;
+                console.log("processRecordId(Retorno):", processRecordId);
+            }
+        }
+        document.getElementById('btnPlay').addEventListener('click', () => {
+            console.log("startKeepAlive");
+            startKeepAlive();
+            // Qualquer outra lógica necessária ao iniciar o cronômetro...
+        });
+
+
+        async function stopTimer() {
+            console.log("processRecordId(Stop):", processRecordId);
+
+            const description = document.getElementById("description").value; // Pega a descrição da tela
+
+            const response = await fetch('/TimeTracker/StopTimer', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    processRecordId: processRecordId,
+                    description: description // Envia a nova descrição
+                })
+            });
+
+            if (response.ok) {
+                clearInterval(timerInterval);
+                isRunning = false;
+                document.getElementById("timeDisplay").textContent = "00:00:00";
+                document.title = "Time Tracker";
+                document.getElementById("timeTrackerLabel").textContent = "Time Tracker";
+
+                // Resetando os valores dos campos
+                document.getElementById("description").value = "";
+                document.querySelector('select[name="ProcessRecord.ClientId"]').value = "0";
+                document.querySelector('select[name="ProcessRecord.DepartmentId"]').value = "0";
+                document.getElementById("solicitante").value = "";
+                document.querySelector('select[name="ProcessRecord.RecordType"]').value = "0";
+
+                await loadRecordsForToday(loggedUserId);
+
+            } else {
+                console.error("Erro ao parar o cronômetro e salvar o registro.");
+            }
+        }
+
+
+        function updateTime() {
+            const now = new Date();
+            const elapsed = Math.floor((now - startTime) / 1000);
+
+            const hours = String(Math.floor(elapsed / 3600)).padStart(2, '0');
+            const minutes = String(Math.floor((elapsed % 3600) / 60)).padStart(2, '0');
+            const seconds = String(elapsed % 60).padStart(2, '0');
+
+            document.getElementById("timeDisplay").textContent = `${hours}:${minutes}:${seconds}`;
+
+            // Atualiza o título da aba do navegador com o cronômetro
+            document.title = `${hours}:${minutes}:${seconds} - Time Tracker`;
+        }
+
+        function filterTable() {
+            const input = document.getElementById("searchInput").value.toLowerCase();
+            const table = document.getElementById("recordsTable");
+            const rows = table.getElementsByTagName("tr");
+
+            // Loop nas linhas da tabela, ignorando o cabeçalho
+            for (let i = 1; i < rows.length; i++) {
+                const row = rows[i];
+                const cells = row.getElementsByTagName("td");
+                let rowContainsTerm = false;
+
+                // Loop nas células da linha
+                for (let j = 0; j < cells.length; j++) {
+                    const cellContent = cells[j].textContent || cells[j].innerText;
+
+                    // Verifica se o termo aparece em alguma célula da linha
+                    if (cellContent.toLowerCase().includes(input)) {
+                        rowContainsTerm = true;
+                        break;
+                    }
+                }
+
+                // Mostra ou oculta a linha com base no resultado da busca
+                row.style.display = rowContainsTerm ? "" : "none";
+            }
+        }
+
+        function startKeepAlive() {
+            console.log('Iniciando Keep-alive bem-sucedido')
+            // Envia uma requisição a cada 5 minutos (300000 ms)
+            setInterval(() => {
+                fetch('/TimeTracker/KeepAlive') // Rota criada para manter a sessão ativa
+                    .then(response => response.ok ? console.log('Keep-alive bem-sucedido') : console.warn('Erro no keep-alive'))
+                    .catch(error => console.error('Erro na requisição de keep-alive:', error));
+            }, 300000); // 5 minutos
+        }
+
+
+
+    </script>
+</body>
+</html>

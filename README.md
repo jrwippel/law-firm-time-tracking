@@ -68,6 +68,27 @@ This system provides a centralized platform where:
 
 ## Screenshots
 
+Login
+<img width="1578" height="922" alt="image" src="https://github.com/user-attachments/assets/7cf2ab54-b2b6-4a00-ba20-5a58a651679d" />
+
+Tela Inicial com gráficos
+
+<img width="1699" height="589" alt="image" src="https://github.com/user-attachments/assets/1099718d-8014-4612-9d11-592a7835e384" />
+
+Registro de tempos
+  Time Trackker
+  <img width="1481" height="692" alt="image" src="https://github.com/user-attachments/assets/731bd516-10fd-4921-9bbf-fe05f1608321" />
+
+  Calndário
+  <img width="1401" height="658" alt="image" src="https://github.com/user-attachments/assets/a83d335a-dbd1-42f6-946c-9189e57bf35d" />
+
+  Registro de atividades
+  <img width="1389" height="565" alt="image" src="https://github.com/user-attachments/assets/4eba5248-a65f-4486-8486-e42f7f469d09" />
+
+
+
+
+
 Relatório de Horas por cliente e área
 
 <img width="1448" height="576" alt="image" src="https://github.com/user-attachments/assets/96a068d5-0a95-4839-9cf6-c89f4fe734b8" />

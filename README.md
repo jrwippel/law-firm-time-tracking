@@ -68,7 +68,12 @@ This system provides a centralized platform where:
 
 ## Screenshots
 
-> (Add application screenshots here – dashboards, time entry, reports)
+Relatório de Horas por cliente e área
+
+<img width="1448" height="576" alt="image" src="https://github.com/user-attachments/assets/96a068d5-0a95-4839-9cf6-c89f4fe734b8" />
+
+<img width="1371" height="540" alt="image" src="https://github.com/user-attachments/assets/8e323bc5-12e0-416c-96bd-d6e857a1d75f" />
+
 
 ---
 

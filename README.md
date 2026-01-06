@@ -4,7 +4,7 @@
 
 This project is a **web-based time tracking and management system** developed for a law firm to register lawyers’ working hours, monitor activities, and support **accurate billing and strategic financial decisions**.
 
-The system is currently **used in production by a real client**, supporting daily operations and monthly billing processes.
+The system is currently supporting daily operations and monthly billing processes.
 
 ---
 

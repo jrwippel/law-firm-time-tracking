@@ -69,7 +69,7 @@ The architectural decisions prioritize long-term evolution, stability, and ease 
 
 ## Security & Data Privacy
 
-- All sensitive credentials and production secrets were removed
+- All sensitive credentials secrets were removed
 - Configuration values are managed via environment variables
 - Client data was anonymized for portfolio usage
 - This repository follows GitHub security and secret-scanning best practices
